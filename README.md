@@ -1,12 +1,23 @@
-# WoW-CSG Celebrate (SharePoint)
+# WoW-CSG Celebrate
 
-Celebrate runs on your **existing Fitness site** for lists/data. The UI can be hosted on **Azure Static Web Apps** or SharePoint Site Assets.
+Share wins, events, and culture. **Demo mode is live now** (no Entra / SharePoint required).
 
-## Your links
+## Use it now
 
 | What | URL |
 | --- | --- |
-| **Azure app (live)** | https://brave-ocean-0cee0c80f.7.azurestaticapps.net |
+| **Live demo (Azure)** | https://brave-ocean-0cee0c80f.7.azurestaticapps.net |
+| **GitHub Pages** | https://mimohcsg.github.io/wow-csg-celebrate/ |
+| **Source** | https://github.com/mimohcsg/wow-csg-celebrate |
+
+Open the Azure link → **Enter Celebrate** → **Continue to feed**. Posts stay in your browser until SharePoint/Entra is connected.
+
+## SharePoint + Microsoft sign-in (later)
+
+Lists live on the Fitness site; Entra Client ID is required for real M365 login.
+
+| What | URL |
+| --- | --- |
 | **Site (Fitness + Celebrate lists)** | https://csgsystems.sharepoint.com/sites/WoWCSGFitness |
 | **SharePoint-hosted app (optional)** | https://csgsystems.sharepoint.com/sites/WoWCSGFitness/SiteAssets/CelebrateApp/index.html |
 
@@ -16,7 +27,7 @@ Celebrate runs on your **existing Fitness site** for lists/data. The UI can be h
 
 Resource group: `rg-wow-csg-celebrate` · Static Web App: `wow-csg-celebrate` (Free, East US 2)
 
-### Finish Entra sign-in (required once)
+### Finish Entra sign-in (optional, for production)
 
 Your account can’t create app registrations via CLI. In [Entra admin](https://entra.microsoft.com) (or ask IT):
 
@@ -26,7 +37,7 @@ Your account can’t create app registrations via CLI. In [Entra admin](https://
    - `https://brave-ocean-0cee0c80f.7.azurestaticapps.net`
    - `http://localhost:5173`
 4. API permissions (Delegated) + admin consent: `User.Read`, `Sites.ReadWrite.All`, `Files.ReadWrite.All`
-5. Put Client ID into `.env.local` as `VITE_MSAL_CLIENT_ID`, then:
+5. Put Client ID into `.env.local` as `VITE_MSAL_CLIENT_ID`, set `VITE_DEMO_MODE=false`, then rebuild and redeploy.
 
 ```powershell
 cd wow-csg-celebrate-sharepoint
