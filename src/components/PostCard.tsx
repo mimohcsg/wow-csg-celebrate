@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { Post, Comment } from '../types'
 import { useAuth } from '../auth/AuthContext'
 import { addComment, fetchComments, toggleLike } from '../api/sharepoint'
@@ -88,11 +89,13 @@ export function PostCard({
   return (
     <article className="card">
       <div className="card-head">
-        <img className="avatar" src={avatar} alt="" />
-        <div className="card-head-meta">
-          <strong>{post.authorName || post.authorEmail}</strong>
-          <div className="muted">{when}</div>
-        </div>
+        <Link to={post.authorUsername ? `/app/profile/${post.authorUsername}` : '/app'} className="card-head-link">
+          <img className="avatar" src={avatar} alt="" />
+          <div className="card-head-meta">
+            <strong>{post.authorUsername ? `@${post.authorUsername}` : post.authorName || post.authorEmail}</strong>
+            <div className="muted">{when} · {post.authorName}</div>
+          </div>
+        </Link>
       </div>
 
       {post.media[0] ? (

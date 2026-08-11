@@ -10,10 +10,10 @@ import {
 import { ensureMsal, getActiveAccount, isCorporateEmail, isMsalConfigured, signIn, signOut } from './msal'
 import { getMe } from '../api/sharepoint'
 import { getDemoUser, isDemoMode } from '../api/demoStore'
-import { isSharedMode } from '../api/sharedApi'
+import { isSharedMode, sharedLogin, sharedSignup, sharedUpdateProfile } from '../api/sharedApi'
 import type { CelebrateUser } from '../types'
 
-const PROFILE_KEY = 'wow-celebrate-profile-v1'
+const PROFILE_KEY = 'wow-celebrate-profile-v2'
 
 type AuthState = {
   user: CelebrateUser | null
@@ -22,9 +22,19 @@ type AuthState = {
   demoMode: boolean
   sharedMode: boolean
   login: () => Promise<void>
+  loginShared: (login: string, password: string) => Promise<void>
+  signupShared: (params: {
+    username: string
+    email: string
+    password: string
+    displayName: string
+    bio?: string
+  }) => Promise<void>
+  updateProfile: (params: { displayName?: string; bio?: string; avatar?: File | null }) => Promise<void>
   joinShared: (name: string, email: string) => Promise<void>
   logout: () => Promise<void>
   error: string
+  setError: (msg: string) => void
 }
 
 const Ctx = createContext<AuthState | null>(null)
@@ -108,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       demoMode,
       sharedMode,
       error,
+      setError,
       login: async () => {
         if (sharedMode) return
         if (demoMode) {
@@ -126,7 +137,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false)
         }
       },
+      loginShared: async (loginId, password) => {
+        setError('')
+        setLoading(true)
+        try {
+          const next = await sharedLogin(loginId, password)
+          writeProfile(next)
+          setUser(next)
+        } catch (e) {
+          setError(e instanceof Error ? e.message : 'Login failed')
+          throw e
+        } finally {
+          setLoading(false)
+        }
+      },
+      signupShared: async (params) => {
+        setError('')
+        setLoading(true)
+        try {
+          const next = await sharedSignup(params)
+          writeProfile(next)
+          setUser(next)
+        } catch (e) {
+          setError(e instanceof Error ? e.message : 'Signup failed')
+          throw e
+        } finally {
+          setLoading(false)
+        }
+      },
+      updateProfile: async (params) => {
+        if (!user) return
+        const next = await sharedUpdateProfile({
+          email: user.email,
+          displayName: params.displayName,
+          bio: params.bio,
+          avatar: params.avatar,
+        })
+        writeProfile(next)
+        setUser(next)
+      },
       joinShared: async (name: string, email: string) => {
+        // Legacy quick-join kept for compatibility
         const displayName = name.trim()
         const cleanEmail = email.trim().toLowerCase()
         if (!displayName || !cleanEmail || !cleanEmail.includes('@')) {

@@ -8,6 +8,12 @@ export type CelebrateUser = {
   email: string
   displayName: string
   avatarUrl: string
+  username?: string
+  bio?: string
+  followersCount?: number
+  followingCount?: number
+  isFollowing?: boolean
+  createdAt?: string
 }
 
 export type Post = {
@@ -15,6 +21,7 @@ export type Post = {
   caption: string
   authorEmail: string
   authorName: string
+  authorUsername?: string
   authorAvatar: string
   media: MediaItem[]
   likeCount: number

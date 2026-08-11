@@ -2,8 +2,10 @@ import { Navigate, Outlet, Route, Routes, Link, useLocation } from 'react-router
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { LandingPage } from './pages/Landing'
 import { LoginPage } from './pages/Login'
+import { SignupPage } from './pages/Signup'
 import { HomePage } from './pages/Home'
 import { CreatePage } from './pages/Create'
+import { ProfilePage } from './pages/Profile'
 
 function HomeIcon() {
   return (
@@ -47,16 +49,20 @@ function RequireAuth() {
 function AppChrome() {
   const location = useLocation()
   const inApp = location.pathname.startsWith('/app')
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
+  const profilePath = user?.username ? `/app/profile/${user.username}` : '/app/profile'
 
   return (
     <>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route element={<RequireAuth />}>
           <Route path="/app" element={<HomePage />} />
           <Route path="/app/create" element={<CreatePage />} />
+          <Route path="/app/profile" element={<ProfilePage />} />
+          <Route path="/app/profile/:username" element={<ProfilePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -70,15 +76,13 @@ function AppChrome() {
             <PlusIcon />
             Create
           </Link>
-          <button
-            type="button"
-            className="nav-profile"
-            onClick={() => void logout()}
-            aria-label="Log out"
+          <Link
+            to={profilePath}
+            className={location.pathname.startsWith('/app/profile') ? 'active' : ''}
           >
             <PersonIcon />
-            Log out
-          </button>
+            Profile
+          </Link>
         </nav>
       )}
     </>

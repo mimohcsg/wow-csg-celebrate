@@ -6,10 +6,13 @@ export function LandingPage() {
   return (
     <div className="app-shell">
       <section className="hero-screen">
-        <h1 className="brand-mark">Celebrate</h1>
-        <p className="sub" style={{ maxWidth: 320, margin: '0 auto' }}>
+        <div className="brand-lockup">
+          <p className="brand-eyebrow">WoW-CSG</p>
+          <h1 className="brand-mark">Celebrate</h1>
+        </div>
+        <p className="sub" style={{ maxWidth: 340, margin: '0 auto' }}>
           {sharedMode
-            ? 'Share wins, events, and culture with your CSG team — one feed for everyone.'
+            ? 'Share wins, events, and culture with your CSG team — one colorful feed for everyone.'
             : demoMode
               ? 'Share wins and culture moments in demo mode.'
               : 'Share wins, events, and culture with Microsoft 365 sign-in.'}
@@ -20,9 +23,14 @@ export function LandingPage() {
           </div>
         )}
         <div className="hero-actions">
-          <Link to="/login" className="btn btn-primary">
-            {sharedMode ? 'Join the feed' : demoMode ? 'Enter Celebrate' : 'Sign in with Microsoft'}
+          <Link to={sharedMode ? '/signup' : '/login'} className="btn btn-primary">
+            {sharedMode ? 'Sign up' : demoMode ? 'Enter Celebrate' : 'Sign in with Microsoft'}
           </Link>
+          {sharedMode && (
+            <Link to="/login" className="btn btn-secondary">
+              Log in
+            </Link>
+          )}
         </div>
       </section>
     </div>

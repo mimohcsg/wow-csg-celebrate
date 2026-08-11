@@ -91,3 +91,82 @@ export async function sharedFetchActiveStories(): Promise<Story[]> {
   const data = (await res.json()) as { stories: Story[] }
   return data.stories || []
 }
+
+export async function sharedSignup(params: {
+  username: string
+  email: string
+  password: string
+  displayName: string
+  bio?: string
+}): Promise<CelebrateUser> {
+  const res = await fetch(apiUrl('/api/auth/signup'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  if (!res.ok) throw new Error(await readError(res))
+  const data = (await res.json()) as { user: CelebrateUser }
+  return data.user
+}
+
+export async function sharedLogin(login: string, password: string): Promise<CelebrateUser> {
+  const res = await fetch(apiUrl('/api/auth/login'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ login, password }),
+  })
+  if (!res.ok) throw new Error(await readError(res))
+  const data = (await res.json()) as { user: CelebrateUser }
+  return data.user
+}
+
+export async function sharedGetProfile(
+  username: string,
+  viewerEmail = '',
+): Promise<{ user: CelebrateUser; postsCount: number }> {
+  const res = await fetch(
+    apiUrl(`/api/users/${encodeURIComponent(username)}?viewer=${encodeURIComponent(viewerEmail)}`),
+  )
+  if (!res.ok) throw new Error(await readError(res))
+  return (await res.json()) as { user: CelebrateUser; postsCount: number }
+}
+
+export async function sharedGetUserPosts(username: string, viewerEmail = ''): Promise<Post[]> {
+  const res = await fetch(
+    apiUrl(
+      `/api/users/${encodeURIComponent(username)}/posts?viewer=${encodeURIComponent(viewerEmail)}`,
+    ),
+  )
+  if (!res.ok) throw new Error(await readError(res))
+  const data = (await res.json()) as { posts: Post[] }
+  return data.posts || []
+}
+
+export async function sharedFollow(username: string, myEmail: string): Promise<CelebrateUser> {
+  const res = await fetch(apiUrl(`/api/users/${encodeURIComponent(username)}/follow`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: myEmail }),
+  })
+  if (!res.ok) throw new Error(await readError(res))
+  const data = (await res.json()) as { user: CelebrateUser }
+  return data.user
+}
+
+export async function sharedUpdateProfile(params: {
+  email: string
+  displayName?: string
+  bio?: string
+  avatar?: File | null
+}): Promise<CelebrateUser> {
+  const body = new FormData()
+  body.set('email', params.email)
+  if (params.displayName) body.set('displayName', params.displayName)
+  if (typeof params.bio === 'string') body.set('bio', params.bio)
+  if (params.avatar) body.append('avatar', params.avatar)
+  const res = await fetch(apiUrl('/api/users/me'), { method: 'PATCH', body })
+  if (!res.ok) throw new Error(await readError(res))
+  const data = (await res.json()) as { user: CelebrateUser }
+  return data.user
+}
+

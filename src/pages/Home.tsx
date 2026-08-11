@@ -6,7 +6,7 @@ import { PostCard } from '../components/PostCard'
 import type { Post, Story } from '../types'
 
 export function HomePage() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const [posts, setPosts] = useState<Post[]>([])
   const [stories, setStories] = useState<Story[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,10 +51,15 @@ export function HomePage() {
   return (
     <div className="page">
       <div className="top-bar">
-        <h1 className="brand-mark">Celebrate</h1>
-        <button type="button" className="btn-link" onClick={() => void logout()}>
-          Log out
-        </button>
+        <div className="brand-lockup compact">
+          <p className="brand-eyebrow">WoW-CSG</p>
+          <h1 className="brand-mark">Celebrate</h1>
+        </div>
+        {user?.username && (
+          <Link to={`/app/profile/${user.username}`} className="btn-link">
+            @{user.username}
+          </Link>
+        )}
       </div>
 
       <input
