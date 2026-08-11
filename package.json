@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "functions:install": "npm --prefix functions ci",
+    "firebase:deploy": "npm run build && npm --prefix functions ci && npx firebase-tools deploy",
+    "firebase:deploy:hosting": "npm run build && npx firebase-tools deploy --only hosting",
+    "firebase:deploy:functions": "npm --prefix functions ci && npx firebase-tools deploy --only functions,firestore:rules,storage"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.12.0",

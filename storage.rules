@@ -1,0 +1,10 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Public read for uploaded media; writes only via Admin SDK (Cloud Functions).
+    match /uploads/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
