@@ -2,19 +2,24 @@
 
 Shared team feed — everyone sees the same posts.
 
-## Share this link
+## Deploy (Render — not Azure)
 
-**https://wowcsgcelebrate-e6erg3d9f4cbbhaw.indiasouthcentral-01.azurewebsites.net**
+This app is set up for **Render** (same host as your other projects like आदिभूमि).
 
-1. Open the link  
-2. **Join the feed**  
-3. Enter name + work email  
-4. Create posts, like, comment — visible to everyone
+### One-click deploy
+
+1. Open: https://render.com/deploy?repo=https://github.com/mimohcsg/wow-csg-celebrate  
+2. Sign in with GitHub (if needed)  
+3. Click **Apply** / **Create Web Service**  
+4. Wait for the build — your live URL will look like:  
+   `https://wow-csg-celebrate.onrender.com`
+
+Or in Render Dashboard → **New** → **Blueprint** → pick `mimohcsg/wow-csg-celebrate`.
+
+### After it is live
+
+1. Open the Render URL  
+2. **Join the feed** with name + work email  
+3. Share that URL with the team
 
 Source: https://github.com/mimohcsg/wow-csg-celebrate
-
-## Notes
-
-- This is a **shared App Service** backend (not per-browser demo).
-- Microsoft Entra / SharePoint sync can be added later when IT provides a Client ID.
-- Deploys automatically from `master` via GitHub Actions.

@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: wow-csg-celebrate
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_SHARED_MODE
+        value: "true"
+      - key: VITE_DEMO_MODE
+        value: "false"
+      - key: VITE_API_BASE
+        value: ""
+      - key: DATA_DIR
+        value: /opt/render/project/src/data
