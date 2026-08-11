@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 
@@ -8,9 +8,17 @@ export function LoginPage() {
   const [email, setEmail] = useState('')
   if (user) return <Navigate to="/app" replace />
 
-  async function onJoin(e: FormEvent) {
+  async function onJoin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     await joinShared(name, email)
+  }
+
+  function onNameChange(e: ChangeEvent<HTMLInputElement>) {
+    setName(e.target.value)
+  }
+
+  function onEmailChange(e: ChangeEvent<HTMLInputElement>) {
+    setEmail(e.target.value)
   }
 
   return (
@@ -35,7 +43,7 @@ export function LoginPage() {
           <form onSubmit={(e) => void onJoin(e)} className="auth-form">
             <div className="field">
               <label htmlFor="name">Your name</label>
-              <input id="name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Mimoh Ojha" />
+              <input id="name" value={name} onChange={onNameChange} required placeholder="Mimoh Ojha" />
             </div>
             <div className="field">
               <label htmlFor="email">Work email</label>
@@ -43,7 +51,7 @@ export function LoginPage() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={onEmailChange}
                 required
                 placeholder="you@csgi.com"
               />
