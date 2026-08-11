@@ -30,5 +30,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.29.1"
   }
 }
