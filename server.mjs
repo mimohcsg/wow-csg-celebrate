@@ -36,15 +36,30 @@ function emptyStore() {
     comments: [],
     likes: [],
     stories: [],
+    storyLikes: [],
+    storyViews: [],
   }
+}
+
+function normalizeStore(raw) {
+  if (!Array.isArray(raw.users)) raw.users = []
+  if (!Array.isArray(raw.posts)) raw.posts = []
+  if (!Array.isArray(raw.comments)) raw.comments = []
+  if (!Array.isArray(raw.likes)) raw.likes = []
+  if (!Array.isArray(raw.stories)) raw.stories = []
+  if (!Array.isArray(raw.storyLikes)) raw.storyLikes = []
+  if (!Array.isArray(raw.storyViews)) raw.storyViews = []
+  for (const s of raw.stories) {
+    if (typeof s.likeCount !== 'number') s.likeCount = 0
+    if (typeof s.viewCount !== 'number') s.viewCount = 0
+  }
+  return raw
 }
 
 function loadStore() {
   try {
     if (fs.existsSync(STORE_PATH)) {
-      const raw = JSON.parse(fs.readFileSync(STORE_PATH, 'utf8'))
-      if (!Array.isArray(raw.users)) raw.users = []
-      return raw
+      return normalizeStore(JSON.parse(fs.readFileSync(STORE_PATH, 'utf8')))
     }
   } catch {
     /* ignore */
@@ -52,6 +67,34 @@ function loadStore() {
   const store = emptyStore()
   saveStore(store)
   return store
+}
+
+function adminEmailList() {
+  return String(process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+function isAdminUser(store, user) {
+  if (!user) return false
+  if (user.isAdmin === true) return true
+  const list = adminEmailList()
+  if (list.includes(String(user.email || '').toLowerCase())) return true
+  // Bootstrap: first registered account is admin when ADMIN_EMAILS is unset
+  if (list.length === 0 && store.users[0] && store.users[0].email === user.email) return true
+  return false
+}
+
+function enrichStory(store, story, viewerEmail = '') {
+  return {
+    ...story,
+    likeCount: Number(story.likeCount || 0),
+    viewCount: Number(story.viewCount || 0),
+    likedByMe: Boolean(
+      viewerEmail && store.storyLikes.some((l) => l.storyId === story.id && l.email === viewerEmail),
+    ),
+  }
 }
 
 function saveStore(store) {
@@ -76,10 +119,11 @@ function verifyPassword(password, salt, hash) {
   }
 }
 
-function publicUser(u, viewerEmail = '') {
+function publicUser(u, viewerEmail = '', store = null) {
   if (!u) return null
   const followers = Array.isArray(u.followers) ? u.followers : []
   const following = Array.isArray(u.following) ? u.following : []
+  const s = store || loadStore()
   return {
     id: u.id,
     username: u.username,
@@ -90,6 +134,7 @@ function publicUser(u, viewerEmail = '') {
     followersCount: followers.length,
     followingCount: following.length,
     isFollowing: Boolean(viewerEmail && followers.includes(viewerEmail)),
+    isAdmin: isAdminUser(s, u),
     createdAt: u.createdAt,
   }
 }
@@ -169,7 +214,7 @@ app.post('/api/auth/signup', (req, res) => {
     }
     store.users.push(user)
     saveStore(store)
-    res.status(201).json({ user: publicUser(user) })
+    res.status(201).json({ user: publicUser(user, '', store) })
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Signup failed' })
   }
@@ -188,7 +233,7 @@ app.post('/api/auth/login', (req, res) => {
     if (!user || !verifyPassword(password, user.passwordSalt, user.passwordHash)) {
       return res.status(401).json({ error: 'Invalid username/email or password' })
     }
-    res.json({ user: publicUser(user) })
+    res.json({ user: publicUser(user, '', store) })
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Login failed' })
   }
@@ -201,7 +246,7 @@ app.get('/api/users/:username', (req, res) => {
   if (!user) return res.status(404).json({ error: 'User not found' })
   const posts = store.posts.filter((p) => p.authorEmail === user.email)
   res.json({
-    user: publicUser(user, viewer),
+    user: publicUser(user, viewer, store),
     postsCount: posts.length,
   })
 })
@@ -434,13 +479,16 @@ app.post('/api/posts/:id/comments', (req, res) => {
   res.status(201).json({ comment })
 })
 
-app.get('/api/stories', (_req, res) => {
+app.get('/api/stories', (req, res) => {
   const now = Date.now()
+  const viewer = String(req.query.viewer || '').trim().toLowerCase()
   const store = loadStore()
-  const stories = store.stories.filter((s) => {
-    const exp = Date.parse(s.expiresAt)
-    return !Number.isFinite(exp) || exp > now
-  })
+  const stories = store.stories
+    .filter((s) => {
+      const exp = Date.parse(s.expiresAt)
+      return !Number.isFinite(exp) || exp > now
+    })
+    .map((s) => enrichStory(store, s, viewer))
   res.json({ stories })
 })
 
@@ -459,15 +507,105 @@ app.post('/api/stories', upload.single('file'), (req, res) => {
       authorName: account?.displayName || authorName,
       authorAvatar: account?.avatarUrl || '',
       mediaUrl: publicUrl(req, req.file.filename),
+      likeCount: 0,
+      viewCount: 0,
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
     }
     store.stories.unshift(story)
     saveStore(store)
-    res.status(201).json({ story })
+    res.status(201).json({ story: enrichStory(store, story, authorEmail) })
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Story failed' })
   }
+})
+
+app.post('/api/stories/:id/like', (req, res) => {
+  const storyId = req.params.id
+  const email = String(req.body.email || '').trim().toLowerCase()
+  if (!email) return res.status(400).json({ error: 'email required' })
+  const store = loadStore()
+  const story = store.stories.find((s) => s.id === storyId)
+  if (!story) return res.status(404).json({ error: 'Story not found' })
+
+  const idx = store.storyLikes.findIndex((l) => l.storyId === storyId && l.email === email)
+  if (idx >= 0) {
+    store.storyLikes.splice(idx, 1)
+    story.likeCount = Math.max(0, Number(story.likeCount || 0) - 1)
+  } else {
+    store.storyLikes.push({ storyId, email, createdAt: new Date().toISOString() })
+    story.likeCount = Number(story.likeCount || 0) + 1
+  }
+  saveStore(store)
+  res.json({ story: enrichStory(store, story, email) })
+})
+
+app.post('/api/stories/:id/view', (req, res) => {
+  const storyId = req.params.id
+  const email = String(req.body.email || '').trim().toLowerCase()
+  if (!email) return res.status(400).json({ error: 'email required' })
+  const store = loadStore()
+  const story = store.stories.find((s) => s.id === storyId)
+  if (!story) return res.status(404).json({ error: 'Story not found' })
+
+  // Instagram-style: unique viewers, skip author's own open
+  if (email !== story.authorEmail) {
+    const already = store.storyViews.some((v) => v.storyId === storyId && v.email === email)
+    if (!already) {
+      store.storyViews.push({ storyId, email, createdAt: new Date().toISOString() })
+      story.viewCount = Number(story.viewCount || 0) + 1
+      saveStore(store)
+    }
+  }
+  res.json({ story: enrichStory(store, story, email) })
+})
+
+app.get('/api/admin/insights', (req, res) => {
+  const email = String(req.query.email || '').trim().toLowerCase()
+  if (!email) return res.status(400).json({ error: 'email required' })
+  const store = loadStore()
+  const user = findUser(store, { email })
+  if (!isAdminUser(store, user)) {
+    return res.status(403).json({ error: 'Admin access required' })
+  }
+
+  const topPosts = [...store.posts]
+    .map((p) => ({
+      id: p.id,
+      caption: p.caption,
+      authorName: p.authorName,
+      authorEmail: p.authorEmail,
+      likeCount: Number(p.likeCount || 0),
+      commentCount: Number(p.commentCount || 0),
+      createdAt: p.createdAt,
+      mediaUrl: p.media?.[0]?.url || '',
+    }))
+    .sort((a, b) => b.likeCount - a.likeCount || b.commentCount - a.commentCount)
+    .slice(0, 20)
+
+  const topStoriesByViews = [...store.stories]
+    .map((s) => enrichStory(store, s))
+    .sort((a, b) => b.viewCount - a.viewCount || b.likeCount - a.likeCount)
+    .slice(0, 20)
+
+  const topStoriesByLikes = [...store.stories]
+    .map((s) => enrichStory(store, s))
+    .sort((a, b) => b.likeCount - a.likeCount || b.viewCount - a.viewCount)
+    .slice(0, 20)
+
+  res.json({
+    summary: {
+      users: store.users.length,
+      posts: store.posts.length,
+      stories: store.stories.length,
+      postLikes: store.likes.length,
+      storyLikes: store.storyLikes.length,
+      storyViews: store.storyViews.length,
+    },
+    topPosts,
+    topStoriesByViews,
+    topStoriesByLikes,
+  })
 })
 
 const distDir = path.join(__dirname, 'dist')

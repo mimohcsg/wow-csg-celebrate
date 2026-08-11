@@ -129,9 +129,16 @@ export function ProfilePage() {
           <h1 className="brand-mark">Celebrate</h1>
         </div>
         {isMe && (
-          <button type="button" className="btn-link" onClick={() => void logout()}>
-            Log out
-          </button>
+          <div className="top-bar-actions">
+            {user?.isAdmin && (
+              <Link to="/app/insights" className="btn-link">
+                Insights
+              </Link>
+            )}
+            <button type="button" className="btn-link" onClick={() => void logout()}>
+              Log out
+            </button>
+          </div>
         )}
       </div>
 

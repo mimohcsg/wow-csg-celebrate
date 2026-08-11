@@ -13,6 +13,7 @@ export type CelebrateUser = {
   followersCount?: number
   followingCount?: number
   isFollowing?: boolean
+  isAdmin?: boolean
   createdAt?: string
 }
 
@@ -39,6 +40,32 @@ export type Story = {
   mediaUrl: string
   createdAt: string
   expiresAt: string
+  likeCount?: number
+  viewCount?: number
+  likedByMe?: boolean
+}
+
+export type AdminInsights = {
+  summary: {
+    users: number
+    posts: number
+    stories: number
+    postLikes: number
+    storyLikes: number
+    storyViews: number
+  }
+  topPosts: Array<{
+    id: string
+    caption: string
+    authorName: string
+    authorEmail: string
+    likeCount: number
+    commentCount: number
+    createdAt: string
+    mediaUrl: string
+  }>
+  topStoriesByViews: Story[]
+  topStoriesByLikes: Story[]
 }
 
 export type Comment = {

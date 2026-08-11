@@ -19,3 +19,6 @@ services:
         value: ""
       - key: DATA_DIR
         value: /opt/render/project/src/data
+      # Comma-separated admin emails for Insights. If empty, first registered user is admin.
+      - key: ADMIN_EMAILS
+        sync: false

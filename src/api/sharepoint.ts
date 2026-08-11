@@ -3,6 +3,7 @@ import { getAccessToken } from '../auth/msal'
 import type { CelebrateUser, Comment, MediaItem, Post, Story } from '../types'
 import {
   demoAddComment,
+  demoAdminInsights,
   demoCreatePost,
   demoCreateStory,
   demoDeletePost,
@@ -10,7 +11,9 @@ import {
   demoFetchComments,
   demoFetchPosts,
   demoGetMe,
+  demoLikeStory,
   demoToggleLike,
+  demoViewStory,
   isDemoMode,
 } from './demoStore'
 import {
@@ -22,7 +25,10 @@ import {
   sharedFetchActiveStories,
   sharedFetchComments,
   sharedFetchPosts,
+  sharedLikeStory,
   sharedToggleLike,
+  sharedViewStory,
+  sharedAdminInsights,
 } from './sharedApi'
 
 const siteHost = import.meta.env.VITE_SHAREPOINT_SITE_HOST || ''
@@ -335,9 +341,9 @@ export async function createStory(user: CelebrateUser, file: File): Promise<stri
   return String(created.id)
 }
 
-export async function fetchActiveStories(): Promise<Story[]> {
-  if (isSharedMode()) return sharedFetchActiveStories()
-  if (isDemoMode()) return demoFetchActiveStories()
+export async function fetchActiveStories(viewerEmail = ''): Promise<Story[]> {
+  if (isSharedMode()) return sharedFetchActiveStories(viewerEmail)
+  if (isDemoMode()) return demoFetchActiveStories(viewerEmail)
   const client = graphClient()
   const siteId = await getSiteId(client)
   const listId = await getListId(client, 'CelebrateStories')
@@ -361,10 +367,30 @@ export async function fetchActiveStories(): Promise<Story[]> {
         mediaUrl: String(f.MediaUrl || ''),
         createdAt: item.createdDateTime || '',
         expiresAt: String(f.ExpiresAt || ''),
+        likeCount: 0,
+        viewCount: 0,
       } as Story
     })
     .filter((s: Story) => {
       const exp = Date.parse(s.expiresAt)
       return !Number.isFinite(exp) || exp > now
     })
+}
+
+export async function likeStory(storyId: string, user: CelebrateUser): Promise<Story> {
+  if (isSharedMode()) return sharedLikeStory(storyId, user.email)
+  if (isDemoMode()) return demoLikeStory(storyId, user.email)
+  throw new Error('Story likes require shared mode')
+}
+
+export async function viewStory(storyId: string, user: CelebrateUser): Promise<Story> {
+  if (isSharedMode()) return sharedViewStory(storyId, user.email)
+  if (isDemoMode()) return demoViewStory(storyId, user.email)
+  throw new Error('Story views require shared mode')
+}
+
+export async function fetchAdminInsights(user: CelebrateUser) {
+  if (isSharedMode()) return sharedAdminInsights(user.email)
+  if (isDemoMode()) return demoAdminInsights(user.email)
+  throw new Error('Insights require shared mode')
 }

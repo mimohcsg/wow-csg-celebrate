@@ -6,6 +6,7 @@ import { SignupPage } from './pages/Signup'
 import { HomePage } from './pages/Home'
 import { CreatePage } from './pages/Create'
 import { ProfilePage } from './pages/Profile'
+import { InsightsPage } from './pages/Insights'
 
 function HomeIcon() {
   return (
@@ -61,6 +62,7 @@ function AppChrome() {
         <Route element={<RequireAuth />}>
           <Route path="/app" element={<HomePage />} />
           <Route path="/app/create" element={<CreatePage />} />
+          <Route path="/app/insights" element={<InsightsPage />} />
           <Route path="/app/profile" element={<ProfilePage />} />
           <Route path="/app/profile/:username" element={<ProfilePage />} />
         </Route>

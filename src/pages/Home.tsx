@@ -21,7 +21,7 @@ export function HomePage() {
     setLoading(true)
     setError('')
     try {
-      const [p, s] = await Promise.all([fetchPosts(user.email), fetchActiveStories()])
+      const [p, s] = await Promise.all([fetchPosts(user.email), fetchActiveStories(user.email)])
       setPosts(p)
       setStories(s)
     } catch (e) {
@@ -128,6 +128,9 @@ export function HomePage() {
           stories={stories}
           startIndex={storyIndex}
           onClose={() => setStoryIndex(null)}
+          onStoryChange={(next) =>
+            setStories((all) => all.map((s) => (s.id === next.id ? { ...s, ...next } : s)))
+          }
         />
       )}
     </div>

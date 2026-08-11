@@ -1,4 +1,4 @@
-import type { CelebrateUser, Comment, Post, Story } from '../types'
+import type { AdminInsights, CelebrateUser, Comment, Post, Story } from '../types'
 
 const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '')
 
@@ -85,11 +85,40 @@ export async function sharedCreateStory(user: CelebrateUser, file: File): Promis
   return data.story.id
 }
 
-export async function sharedFetchActiveStories(): Promise<Story[]> {
-  const res = await fetch(apiUrl('/api/stories'))
+export async function sharedFetchActiveStories(viewerEmail = ''): Promise<Story[]> {
+  const q = viewerEmail ? `?viewer=${encodeURIComponent(viewerEmail)}` : ''
+  const res = await fetch(apiUrl(`/api/stories${q}`))
   if (!res.ok) throw new Error(await readError(res))
   const data = (await res.json()) as { stories: Story[] }
   return data.stories || []
+}
+
+export async function sharedLikeStory(storyId: string, email: string): Promise<Story> {
+  const res = await fetch(apiUrl(`/api/stories/${encodeURIComponent(storyId)}/like`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  if (!res.ok) throw new Error(await readError(res))
+  const data = (await res.json()) as { story: Story }
+  return data.story
+}
+
+export async function sharedViewStory(storyId: string, email: string): Promise<Story> {
+  const res = await fetch(apiUrl(`/api/stories/${encodeURIComponent(storyId)}/view`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  if (!res.ok) throw new Error(await readError(res))
+  const data = (await res.json()) as { story: Story }
+  return data.story
+}
+
+export async function sharedAdminInsights(email: string): Promise<AdminInsights> {
+  const res = await fetch(apiUrl(`/api/admin/insights?email=${encodeURIComponent(email)}`))
+  if (!res.ok) throw new Error(await readError(res))
+  return (await res.json()) as AdminInsights
 }
 
 export async function sharedSignup(params: {

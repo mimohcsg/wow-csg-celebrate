@@ -7,6 +7,8 @@ type DemoDb = {
   comments: Comment[]
   likes: Array<{ postId: string; email: string }>
   stories: Story[]
+  storyLikes: Array<{ storyId: string; email: string }>
+  storyViews: Array<{ storyId: string; email: string }>
 }
 
 const DEMO_USER: CelebrateUser = {
@@ -14,6 +16,7 @@ const DEMO_USER: CelebrateUser = {
   email: 'mimoh.ojha@csgi.com',
   displayName: 'Mimoh Ojha',
   avatarUrl: '',
+  isAdmin: true,
 }
 
 function seed(): DemoDb {
@@ -84,7 +87,20 @@ function seed(): DemoDb {
           ),
         createdAt: new Date(now - 600_000).toISOString(),
         expiresAt: new Date(now + 86_400_000).toISOString(),
+        likeCount: 2,
+        viewCount: 5,
       },
+    ],
+    storyLikes: [
+      { storyId: 's1', email: 'alex@csgi.com' },
+      { storyId: 's1', email: 'sam@csgi.com' },
+    ],
+    storyViews: [
+      { storyId: 's1', email: 'alex@csgi.com' },
+      { storyId: 's1', email: 'sam@csgi.com' },
+      { storyId: 's1', email: 'jordan@csgi.com' },
+      { storyId: 's1', email: 'lee@csgi.com' },
+      { storyId: 's1', email: 'pat@csgi.com' },
     ],
   }
 }
@@ -217,6 +233,8 @@ export async function demoCreateStory(user: CelebrateUser, file: File): Promise<
     authorName: user.displayName,
     authorAvatar: user.avatarUrl || '',
     mediaUrl: await fileToDataUrl(file),
+    likeCount: 0,
+    viewCount: 0,
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
   })
@@ -224,12 +242,97 @@ export async function demoCreateStory(user: CelebrateUser, file: File): Promise<
   return id
 }
 
-export async function demoFetchActiveStories(): Promise<Story[]> {
+export async function demoFetchActiveStories(viewerEmail = ''): Promise<Story[]> {
   const now = Date.now()
-  return load().stories.filter((s) => {
-    const exp = Date.parse(s.expiresAt)
-    return !Number.isFinite(exp) || exp > now
-  })
+  const db = load()
+  return db.stories
+    .filter((s) => {
+      const exp = Date.parse(s.expiresAt)
+      return !Number.isFinite(exp) || exp > now
+    })
+    .map((s) => ({
+      ...s,
+      likeCount: Number(s.likeCount || 0),
+      viewCount: Number(s.viewCount || 0),
+      likedByMe: Boolean(
+        viewerEmail && (db.storyLikes || []).some((l) => l.storyId === s.id && l.email === viewerEmail),
+      ),
+    }))
+}
+
+export async function demoLikeStory(storyId: string, email: string): Promise<Story> {
+  const db = load()
+  if (!db.storyLikes) db.storyLikes = []
+  const story = db.stories.find((s) => s.id === storyId)
+  if (!story) throw new Error('Story not found')
+  const idx = db.storyLikes.findIndex((l) => l.storyId === storyId && l.email === email)
+  if (idx >= 0) {
+    db.storyLikes.splice(idx, 1)
+    story.likeCount = Math.max(0, Number(story.likeCount || 0) - 1)
+  } else {
+    db.storyLikes.push({ storyId, email })
+    story.likeCount = Number(story.likeCount || 0) + 1
+  }
+  save(db)
+  return {
+    ...story,
+    likedByMe: db.storyLikes.some((l) => l.storyId === storyId && l.email === email),
+  }
+}
+
+export async function demoViewStory(storyId: string, email: string): Promise<Story> {
+  const db = load()
+  if (!db.storyViews) db.storyViews = []
+  const story = db.stories.find((s) => s.id === storyId)
+  if (!story) throw new Error('Story not found')
+  if (email !== story.authorEmail) {
+    const already = db.storyViews.some((v) => v.storyId === storyId && v.email === email)
+    if (!already) {
+      db.storyViews.push({ storyId, email })
+      story.viewCount = Number(story.viewCount || 0) + 1
+      save(db)
+    }
+  }
+  return {
+    ...story,
+    likedByMe: (db.storyLikes || []).some((l) => l.storyId === storyId && l.email === email),
+  }
+}
+
+export async function demoAdminInsights(email: string) {
+  if (email !== DEMO_USER.email) throw new Error('Admin access required')
+  const db = load()
+  const topPosts = [...db.posts]
+    .map((p) => ({
+      id: p.id,
+      caption: p.caption,
+      authorName: p.authorName,
+      authorEmail: p.authorEmail,
+      likeCount: Number(p.likeCount || 0),
+      commentCount: Number(p.commentCount || 0),
+      createdAt: p.createdAt,
+      mediaUrl: p.media?.[0]?.url || '',
+    }))
+    .sort((a, b) => b.likeCount - a.likeCount)
+    .slice(0, 20)
+  const stories = db.stories.map((s) => ({
+    ...s,
+    likeCount: Number(s.likeCount || 0),
+    viewCount: Number(s.viewCount || 0),
+  }))
+  return {
+    summary: {
+      users: 1,
+      posts: db.posts.length,
+      stories: db.stories.length,
+      postLikes: db.likes.length,
+      storyLikes: (db.storyLikes || []).length,
+      storyViews: (db.storyViews || []).length,
+    },
+    topPosts,
+    topStoriesByViews: [...stories].sort((a, b) => b.viewCount! - a.viewCount!).slice(0, 20),
+    topStoriesByLikes: [...stories].sort((a, b) => b.likeCount! - a.likeCount!).slice(0, 20),
+  }
 }
 
 export async function demoDeletePost(postId: string, email: string): Promise<void> {
