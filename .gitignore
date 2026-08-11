@@ -1,8 +1,10 @@
-node_modules/
+﻿# Build
 dist/
+data/
+
+# Keep node_modules out of git; Azure Action builds on Ubuntu
+node_modules/
 .env.local
 .env
 *.log
 .DS_Store
-.vscode/
-.idea/

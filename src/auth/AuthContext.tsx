@@ -10,32 +10,56 @@ import {
 import { ensureMsal, getActiveAccount, isCorporateEmail, isMsalConfigured, signIn, signOut } from './msal'
 import { getMe } from '../api/sharepoint'
 import { getDemoUser, isDemoMode } from '../api/demoStore'
+import { isSharedMode } from '../api/sharedApi'
 import type { CelebrateUser } from '../types'
 
-const DEMO_SESSION_KEY = 'wow-celebrate-demo-session'
+const PROFILE_KEY = 'wow-celebrate-profile-v1'
 
 type AuthState = {
   user: CelebrateUser | null
   loading: boolean
   configured: boolean
   demoMode: boolean
+  sharedMode: boolean
   login: () => Promise<void>
-  loginDemo: () => Promise<void>
+  joinShared: (name: string, email: string) => Promise<void>
   logout: () => Promise<void>
   error: string
 }
 
 const Ctx = createContext<AuthState | null>(null)
 
+function readProfile(): CelebrateUser | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as CelebrateUser
+    if (parsed?.email && parsed?.displayName) return parsed
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
+function writeProfile(user: CelebrateUser) {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(user))
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CelebrateUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const demoMode = isDemoMode()
+  const demoMode = isDemoMode() && !isSharedMode()
+  const sharedMode = isSharedMode()
 
   const hydrate = useCallback(async () => {
+    if (sharedMode) {
+      setUser(readProfile())
+      setLoading(false)
+      return
+    }
     if (demoMode) {
-      if (localStorage.getItem(DEMO_SESSION_KEY) === '1') {
+      if (localStorage.getItem(PROFILE_KEY) === 'demo') {
         setUser(getDemoUser())
       } else {
         setUser(null)
@@ -70,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [demoMode])
+  }, [demoMode, sharedMode])
 
   useEffect(() => {
     void hydrate()
@@ -80,12 +104,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
-      configured: demoMode || isMsalConfigured,
+      configured: sharedMode || demoMode || isMsalConfigured,
       demoMode,
+      sharedMode,
       error,
       login: async () => {
+        if (sharedMode) return
         if (demoMode) {
-          localStorage.setItem(DEMO_SESSION_KEY, '1')
+          localStorage.setItem(PROFILE_KEY, 'demo')
           setUser(getDemoUser())
           setError('')
           return
@@ -100,18 +126,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false)
         }
       },
-      loginDemo: async () => {
-        localStorage.setItem(DEMO_SESSION_KEY, '1')
-        setUser(getDemoUser())
+      joinShared: async (name: string, email: string) => {
+        const displayName = name.trim()
+        const cleanEmail = email.trim().toLowerCase()
+        if (!displayName || !cleanEmail || !cleanEmail.includes('@')) {
+          setError('Enter your name and a valid work email')
+          return
+        }
+        const next: CelebrateUser = {
+          id: cleanEmail,
+          email: cleanEmail,
+          displayName,
+          avatarUrl: '',
+        }
+        writeProfile(next)
+        setUser(next)
         setError('')
       },
       logout: async () => {
-        localStorage.removeItem(DEMO_SESSION_KEY)
-        if (!demoMode && isMsalConfigured) await signOut()
+        localStorage.removeItem(PROFILE_KEY)
+        if (!sharedMode && !demoMode && isMsalConfigured) await signOut()
         setUser(null)
       },
     }),
-    [user, loading, error, hydrate, demoMode],
+    [user, loading, error, hydrate, demoMode, sharedMode],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

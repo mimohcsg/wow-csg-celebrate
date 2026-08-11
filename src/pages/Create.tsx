@@ -29,7 +29,7 @@ export function CreatePage() {
     }
     setBusy(true)
     setError('')
-    setStatus('Uploading to SharePoint…')
+    setStatus(sharedModeLabel())
     try {
       await createPost({ user, caption, files })
       navigate('/app')
@@ -41,13 +41,17 @@ export function CreatePage() {
     }
   }
 
+  function sharedModeLabel() {
+    return 'Publishing to shared feed…'
+  }
+
   return (
     <div className="page">
       <div className="top-bar">
         <h1>New post</h1>
       </div>
       <p className="muted" style={{ marginTop: 0 }}>
-        Photos/videos save to the CelebrateMedia library on your SharePoint site.
+        Photos and videos are saved to the shared Celebrate feed for everyone.
       </p>
       {error && <div className="error-banner">{error}</div>}
       <form onSubmit={onSubmit}>

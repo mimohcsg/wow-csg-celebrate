@@ -6,6 +6,8 @@ interface ImportMetaEnv {
   readonly VITE_SHAREPOINT_SITE_HOST: string
   readonly VITE_SHAREPOINT_SITE_PATH: string
   readonly VITE_DEMO_MODE?: string
+  readonly VITE_SHARED_MODE?: string
+  readonly VITE_API_BASE?: string
 }
 
 interface ImportMeta {

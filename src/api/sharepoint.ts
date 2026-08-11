@@ -12,6 +12,16 @@ import {
   demoToggleLike,
   isDemoMode,
 } from './demoStore'
+import {
+  isSharedMode,
+  sharedAddComment,
+  sharedCreatePost,
+  sharedCreateStory,
+  sharedFetchActiveStories,
+  sharedFetchComments,
+  sharedFetchPosts,
+  sharedToggleLike,
+} from './sharedApi'
 
 const siteHost = import.meta.env.VITE_SHAREPOINT_SITE_HOST || ''
 const sitePath = import.meta.env.VITE_SHAREPOINT_SITE_PATH || '/sites/WoWCSGCelebrate'
@@ -63,7 +73,7 @@ function parseMedia(json: unknown): MediaItem[] {
 }
 
 export async function getMe(): Promise<CelebrateUser> {
-  if (isDemoMode()) return demoGetMe()
+  if (isSharedMode() || isDemoMode()) return demoGetMe()
   const client = graphClient()
   const me = await client.api('/me').select('id,displayName,mail,userPrincipalName').get()
   const email = (me.mail || me.userPrincipalName || '') as string
@@ -83,6 +93,7 @@ export async function getMe(): Promise<CelebrateUser> {
 }
 
 export async function fetchPosts(userEmail: string): Promise<Post[]> {
+  if (isSharedMode()) return sharedFetchPosts(userEmail)
   if (isDemoMode()) return demoFetchPosts(userEmail)
   const client = graphClient()
   const siteId = await getSiteId(client)
@@ -146,6 +157,7 @@ async function hasLiked(
 }
 
 export async function uploadMedia(file: File, folder = 'posts'): Promise<string> {
+  if (isSharedMode()) throw new Error('Use createPost in shared mode')
   if (isDemoMode()) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -170,6 +182,7 @@ export async function createPost(params: {
   caption: string
   files: File[]
 }): Promise<string> {
+  if (isSharedMode()) return sharedCreatePost(params)
   if (isDemoMode()) return demoCreatePost(params)
   const client = graphClient()
   const siteId = await getSiteId(client)
@@ -202,6 +215,7 @@ export async function createPost(params: {
 }
 
 export async function toggleLike(post: Post, user: CelebrateUser): Promise<Post> {
+  if (isSharedMode()) return sharedToggleLike(post, user)
   if (isDemoMode()) return demoToggleLike(post, user)
   const client = graphClient()
   const siteId = await getSiteId(client)
@@ -242,6 +256,7 @@ export async function toggleLike(post: Post, user: CelebrateUser): Promise<Post>
 }
 
 export async function addComment(postId: string, user: CelebrateUser, text: string): Promise<void> {
+  if (isSharedMode()) return sharedAddComment(postId, user, text)
   if (isDemoMode()) return demoAddComment(postId, user, text)
   const client = graphClient()
   const siteId = await getSiteId(client)
@@ -263,6 +278,7 @@ export async function addComment(postId: string, user: CelebrateUser, text: stri
 }
 
 export async function fetchComments(postId: string): Promise<Comment[]> {
+  if (isSharedMode()) return sharedFetchComments(postId)
   if (isDemoMode()) return demoFetchComments(postId)
   const client = graphClient()
   const siteId = await getSiteId(client)
@@ -291,6 +307,7 @@ export async function fetchComments(postId: string): Promise<Comment[]> {
 }
 
 export async function createStory(user: CelebrateUser, file: File): Promise<string> {
+  if (isSharedMode()) return sharedCreateStory(user, file)
   if (isDemoMode()) return demoCreateStory(user, file)
   const client = graphClient()
   const siteId = await getSiteId(client)
@@ -311,6 +328,7 @@ export async function createStory(user: CelebrateUser, file: File): Promise<stri
 }
 
 export async function fetchActiveStories(): Promise<Story[]> {
+  if (isSharedMode()) return sharedFetchActiveStories()
   if (isDemoMode()) return demoFetchActiveStories()
   const client = graphClient()
   const siteId = await getSiteId(client)

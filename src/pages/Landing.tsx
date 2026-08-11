@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 
 export function LandingPage() {
-  const { configured, demoMode } = useAuth()
+  const { configured, demoMode, sharedMode } = useAuth()
   return (
     <div className="app-shell">
       <section className="hero-screen">
@@ -10,20 +10,20 @@ export function LandingPage() {
           WoW-CSG <span className="accent">Celebrate</span>
         </h1>
         <p className="muted">
-          Share wins, events, and culture
-          {demoMode ? ' — demo mode (browser storage, no Entra required).' : ' — hosted on your CSG SharePoint site with Microsoft 365 sign-in.'}
+          {sharedMode
+            ? 'Share wins, events, and culture — one shared feed for the whole team.'
+            : demoMode
+              ? 'Share wins, events, and culture — demo mode (browser storage only).'
+              : 'Share wins, events, and culture — hosted on your CSG SharePoint site with Microsoft 365 sign-in.'}
         </p>
-        {!configured && !demoMode && (
+        {!configured && !demoMode && !sharedMode && (
           <div className="warn-banner">
-            Microsoft sign-in is not configured yet. Use demo hosting, or ask IT for an Entra Client ID.
+            Microsoft sign-in is not configured yet. Ask IT for an Entra Client ID, or use the shared team host.
           </div>
-        )}
-        {demoMode && (
-          <div className="warn-banner">Demo mode: posts stay in this browser only (not SharePoint yet).</div>
         )}
         <div className="hero-actions">
           <Link to="/login" className="btn btn-primary">
-            {demoMode ? 'Enter Celebrate' : 'Sign in with Microsoft'}
+            {sharedMode ? 'Join the feed' : demoMode ? 'Enter Celebrate' : 'Sign in with Microsoft'}
           </Link>
         </div>
       </section>
