@@ -1,6 +1,6 @@
-import { onRequest } from 'firebase-functions/v2/https'
-import { setGlobalOptions } from 'firebase-functions/v2'
-import { createApp } from './app.mjs'
+const { onRequest } = require('firebase-functions/v2/https')
+const { setGlobalOptions } = require('firebase-functions/v2')
+const { createApp } = require('./app')
 
 setGlobalOptions({
   region: 'asia-south1',
@@ -11,7 +11,7 @@ setGlobalOptions({
 
 const app = createApp()
 
-export const api = onRequest(
+exports.api = onRequest(
   {
     cors: true,
     invoker: 'public',

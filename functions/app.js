@@ -1,8 +1,8 @@
-import cors from 'cors'
-import express from 'express'
-import multer from 'multer'
-import { randomUUID, randomBytes, scryptSync, timingSafeEqual } from 'crypto'
-import { loadStore, updateStore, uploadBuffer } from './store.mjs'
+const cors = require('cors')
+const express = require('express')
+const multer = require('multer')
+const { randomUUID, randomBytes, scryptSync, timingSafeEqual } = require('crypto')
+const { loadStore, updateStore, uploadBuffer } = require('./store')
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -86,7 +86,7 @@ async function fileToUrl(file) {
   return uploadBuffer(file.buffer, file.originalname, file.mimetype)
 }
 
-export function createApp() {
+function createApp() {
   const app = express()
   app.set('trust proxy', 1)
   app.use(cors({ origin: true }))
@@ -601,3 +601,5 @@ export function createApp() {
 
   return app
 }
+
+module.exports = { createApp }

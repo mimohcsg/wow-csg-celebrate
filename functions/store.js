@@ -1,16 +1,18 @@
-import { initializeApp, getApps } from 'firebase-admin/app'
-import { getFirestore } from 'firebase-admin/firestore'
-import { getStorage } from 'firebase-admin/storage'
-import { randomUUID } from 'crypto'
+const { initializeApp, getApps } = require('firebase-admin/app')
+const { getFirestore } = require('firebase-admin/firestore')
+const { getStorage } = require('firebase-admin/storage')
+const { randomUUID } = require('crypto')
 
-if (!getApps().length) {
-  initializeApp()
+function adminDb() {
+  if (!getApps().length) initializeApp()
+  return getFirestore()
 }
 
-const db = getFirestore()
-const STORE_REF = db.collection('celebrate').doc('store')
+function storeRef() {
+  return adminDb().collection('celebrate').doc('store')
+}
 
-export function emptyStore() {
+function emptyStore() {
   const now = Date.now()
   return {
     users: [],
@@ -37,7 +39,7 @@ export function emptyStore() {
   }
 }
 
-export function normalizeStore(raw) {
+function normalizeStore(raw) {
   const store = raw && typeof raw === 'object' ? raw : {}
   if (!Array.isArray(store.users)) store.users = []
   if (!Array.isArray(store.posts)) store.posts = []
@@ -53,31 +55,33 @@ export function normalizeStore(raw) {
   return store
 }
 
-export async function loadStore() {
-  const snap = await STORE_REF.get()
+async function loadStore() {
+  const snap = await storeRef().get()
   if (!snap.exists) {
     const store = emptyStore()
-    await STORE_REF.set(store)
+    await storeRef().set(store)
     return store
   }
   return normalizeStore(snap.data())
 }
 
-export async function saveStore(store) {
-  await STORE_REF.set(normalizeStore(store))
+async function saveStore(store) {
+  await storeRef().set(normalizeStore(store))
 }
 
-export async function updateStore(mutator) {
-  return db.runTransaction(async (tx) => {
-    const snap = await tx.get(STORE_REF)
+async function updateStore(mutator) {
+  return adminDb().runTransaction(async (tx) => {
+    const ref = storeRef()
+    const snap = await tx.get(ref)
     const store = snap.exists ? normalizeStore(snap.data()) : emptyStore()
     const result = await mutator(store)
-    tx.set(STORE_REF, normalizeStore(store))
+    tx.set(ref, normalizeStore(store))
     return result
   })
 }
 
-export async function uploadBuffer(buffer, originalName, mimetype) {
+async function uploadBuffer(buffer, originalName, mimetype) {
+  if (!getApps().length) initializeApp()
   const bucket = getStorage().bucket()
   const safe = String(originalName || 'file').replace(/[^\w.\-]+/g, '_')
   const filename = `uploads/${Date.now()}-${randomUUID().slice(0, 8)}-${safe}`
@@ -96,4 +100,13 @@ export async function uploadBuffer(buffer, originalName, mimetype) {
     /* bucket may already be public via rules */
   }
   return `https://storage.googleapis.com/${bucket.name}/${filename}`
+}
+
+module.exports = {
+  emptyStore,
+  normalizeStore,
+  loadStore,
+  saveStore,
+  updateStore,
+  uploadBuffer,
 }
