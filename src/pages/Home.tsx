@@ -51,11 +51,9 @@ export function HomePage() {
   return (
     <div className="page">
       <div className="top-bar">
-        <h1 className="brand-mark">
-          WoW-CSG <span className="accent">Celebrate</span>
-        </h1>
-        <button type="button" className="btn btn-ghost" onClick={() => void logout()}>
-          Sign out
+        <h1 className="brand-mark">Celebrate</h1>
+        <button type="button" className="btn-link" onClick={() => void logout()}>
+          Log out
         </button>
       </div>
 
@@ -68,14 +66,28 @@ export function HomePage() {
       />
 
       <div className="story-tray" aria-label="Stories">
-        <button type="button" className="story-bubble" onClick={() => fileRef.current?.click()} disabled={storyBusy}>
-          <div className="story-ring">+</div>
-          <span>{storyBusy ? 'Uploading…' : 'Your story'}</span>
+        <button
+          type="button"
+          className="story-bubble add"
+          onClick={() => fileRef.current?.click()}
+          disabled={storyBusy}
+        >
+          <div className="story-ring">
+            <div className="story-ring-inner">+</div>
+          </div>
+          <span>{storyBusy ? '…' : 'Your story'}</span>
         </button>
         {stories.map((s) => (
-          <button type="button" className="story-bubble" key={s.id} onClick={() => window.open(s.mediaUrl, '_blank')}>
+          <button
+            type="button"
+            className="story-bubble"
+            key={s.id}
+            onClick={() => window.open(s.mediaUrl, '_blank')}
+          >
             <div className="story-ring">
-              <img src={s.mediaUrl} alt="" />
+              <div className="story-ring-inner">
+                <img src={s.mediaUrl} alt="" />
+              </div>
             </div>
             <span>{s.authorName.split(' ')[0] || 'Story'}</span>
           </button>
@@ -83,23 +95,25 @@ export function HomePage() {
       </div>
 
       {error && <div className="error-banner">{error}</div>}
-      {loading && <p className="muted">Loading celebrations…</p>}
+      {loading && <p className="loading-row">Loading feed…</p>}
       {!loading && posts.length === 0 && (
         <div className="empty-state">
           <h2>No posts yet</h2>
-          <p>Be the first to share a win on SharePoint.</p>
+          <p>Share the first celebration with your team.</p>
           <Link to="/app/create" className="btn btn-primary">
             Create post
           </Link>
         </div>
       )}
-      {posts.map((p) => (
-        <PostCard
-          key={p.id}
-          post={p}
-          onChange={(next) => setPosts((all) => all.map((x) => (x.id === next.id ? next : x)))}
-        />
-      ))}
+      <div className="feed">
+        {posts.map((p) => (
+          <PostCard
+            key={p.id}
+            post={p}
+            onChange={(next) => setPosts((all) => all.map((x) => (x.id === next.id ? next : x)))}
+          />
+        ))}
+      </div>
     </div>
   )
 }

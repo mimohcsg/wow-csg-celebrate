@@ -24,52 +24,53 @@ export function LoginPage() {
   return (
     <div className="app-shell">
       <div className="auth-page">
-        <h1 className="brand-mark">
-          WoW-CSG <span className="accent">Celebrate</span>
-        </h1>
-        <p className="sub">
-          {sharedMode
-            ? 'Join the shared team feed — everyone sees the same posts.'
-            : demoMode
-              ? 'Demo mode — open the feed without Microsoft Entra setup.'
-              : 'Corporate Microsoft account only (@csgi.com / @csg.com)'}
-        </p>
-        {!configured && !demoMode && !sharedMode && (
-          <div className="warn-banner">Missing VITE_MSAL_CLIENT_ID — complete Entra app setup.</div>
-        )}
-        {error && <div className="error-banner">{error}</div>}
+        <h1 className="brand-mark">Celebrate</h1>
+        <div className="auth-card">
+          <p className="sub" style={{ marginTop: 0 }}>
+            {sharedMode
+              ? 'Join the shared team feed — everyone sees the same posts.'
+              : demoMode
+                ? 'Demo mode — open the feed without Microsoft Entra setup.'
+                : 'Corporate Microsoft account only (@csgi.com / @csg.com)'}
+          </p>
+          {!configured && !demoMode && !sharedMode && (
+            <div className="warn-banner">Missing VITE_MSAL_CLIENT_ID — complete Entra app setup.</div>
+          )}
+          {error && <div className="error-banner">{error}</div>}
 
-        {sharedMode ? (
-          <form onSubmit={(e) => void onJoin(e)} className="auth-form">
-            <div className="field">
-              <label htmlFor="name">Your name</label>
-              <input id="name" value={name} onChange={onNameChange} required placeholder="Mimoh Ojha" />
-            </div>
-            <div className="field">
-              <label htmlFor="email">Work email</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={onEmailChange}
-                required
-                placeholder="you@csgi.com"
-              />
-            </div>
-            <button className="btn btn-primary" type="submit" disabled={loading}>
-              Join Celebrate
+          {sharedMode ? (
+            <form onSubmit={(e) => void onJoin(e)} className="auth-form">
+              <div className="field">
+                <label htmlFor="name">Your name</label>
+                <input id="name" value={name} onChange={onNameChange} required placeholder="Mimoh Ojha" />
+              </div>
+              <div className="field">
+                <label htmlFor="email">Work email</label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={onEmailChange}
+                  required
+                  placeholder="you@csgi.com"
+                />
+              </div>
+              <button className="btn btn-primary" type="submit" disabled={loading}>
+                Join Celebrate
+              </button>
+            </form>
+          ) : (
+            <button
+              className="btn btn-primary"
+              type="button"
+              style={{ width: '100%' }}
+              disabled={loading || (!configured && !demoMode)}
+              onClick={() => void login()}
+            >
+              {loading ? 'Signing in…' : demoMode ? 'Continue to feed' : 'Sign in with Microsoft'}
             </button>
-          </form>
-        ) : (
-          <button
-            className="btn btn-primary"
-            type="button"
-            disabled={loading || (!configured && !demoMode)}
-            onClick={() => void login()}
-          >
-            {loading ? 'Signing in…' : demoMode ? 'Continue to feed' : 'Sign in with Microsoft'}
-          </button>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

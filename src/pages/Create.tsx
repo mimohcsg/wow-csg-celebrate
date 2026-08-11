@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { createPost } from '../api/sharepoint'
 
@@ -29,7 +29,7 @@ export function CreatePage() {
     }
     setBusy(true)
     setError('')
-    setStatus(sharedModeLabel())
+    setStatus('Sharing…')
     try {
       await createPost({ user, caption, files })
       navigate('/app')
@@ -41,50 +41,55 @@ export function CreatePage() {
     }
   }
 
-  function sharedModeLabel() {
-    return 'Publishing to shared feed…'
-  }
-
   return (
-    <div className="page">
+    <div className="page create-page">
       <div className="top-bar">
+        <Link to="/app" className="btn-link">
+          Cancel
+        </Link>
         <h1>New post</h1>
-      </div>
-      <p className="muted" style={{ marginTop: 0 }}>
-        Photos and videos are saved to the shared Celebrate feed for everyone.
-      </p>
-      {error && <div className="error-banner">{error}</div>}
-      <form onSubmit={onSubmit}>
-        <div className="field">
-          <label htmlFor="media">Media</label>
-          <input id="media" type="file" accept="image/*,video/*" multiple onChange={(e) => onFiles(e.target.files)} />
-        </div>
-        {previews.length > 0 && (
-          <div className="media-grid">
-            {files.map((f, i) =>
-              f.type.startsWith('video/') ? (
-                <video key={i} src={previews[i]} muted />
-              ) : (
-                <img key={i} src={previews[i]} alt="" />
-              ),
-            )}
-          </div>
-        )}
-        <div className="field">
-          <label htmlFor="caption">Caption</label>
-          <textarea
-            id="caption"
-            rows={4}
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            placeholder="Celebrate a win… use #hashtags"
-            maxLength={2200}
-          />
-        </div>
-        <button className="btn btn-primary" type="submit" disabled={busy} style={{ width: '100%' }}>
-          {busy ? status || 'Sharing…' : 'Share'}
+        <button
+          className="btn-link"
+          type="submit"
+          form="create-form"
+          disabled={busy}
+          style={{ color: '#0095f6', opacity: busy ? 0.5 : 1 }}
+        >
+          {busy ? '…' : 'Share'}
         </button>
-      </form>
+      </div>
+      <div className="create-body">
+        {error && <div className="error-banner" style={{ margin: '0 0 1rem' }}>{error}</div>}
+        <form id="create-form" onSubmit={onSubmit}>
+          <div className="drop-zone">
+            <p style={{ margin: '0 0 0.75rem' }}>Select photos or a short video</p>
+            <input type="file" accept="image/*,video/*" multiple onChange={(e) => onFiles(e.target.files)} />
+          </div>
+          {previews.length > 0 && (
+            <div className="media-grid">
+              {files.map((f, i) =>
+                f.type.startsWith('video/') ? (
+                  <video key={i} src={previews[i]} muted />
+                ) : (
+                  <img key={i} src={previews[i]} alt="" />
+                ),
+              )}
+            </div>
+          )}
+          <div className="field">
+            <label htmlFor="caption">Caption</label>
+            <textarea
+              id="caption"
+              rows={4}
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="Write a caption… use #hashtags"
+              maxLength={2200}
+            />
+          </div>
+          {status && <p className="muted">{status}</p>}
+        </form>
+      </div>
     </div>
   )
 }

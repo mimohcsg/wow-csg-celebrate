@@ -6,15 +6,13 @@ export function LandingPage() {
   return (
     <div className="app-shell">
       <section className="hero-screen">
-        <h1 className="brand-mark">
-          WoW-CSG <span className="accent">Celebrate</span>
-        </h1>
-        <p className="muted">
+        <h1 className="brand-mark">Celebrate</h1>
+        <p className="sub" style={{ maxWidth: 320, margin: '0 auto' }}>
           {sharedMode
-            ? 'Share wins, events, and culture — one shared feed for the whole team.'
+            ? 'Share wins, events, and culture with your CSG team — one feed for everyone.'
             : demoMode
-              ? 'Share wins, events, and culture — demo mode (browser storage only).'
-              : 'Share wins, events, and culture — hosted on your CSG SharePoint site with Microsoft 365 sign-in.'}
+              ? 'Share wins and culture moments in demo mode.'
+              : 'Share wins, events, and culture with Microsoft 365 sign-in.'}
         </p>
         {!configured && !demoMode && !sharedMode && (
           <div className="warn-banner">
