@@ -356,6 +356,49 @@ app.post('/api/posts/:id/like', (req, res) => {
   })
 })
 
+app.delete('/api/posts/:id', (req, res) => {
+  const postId = req.params.id
+  const email = String(req.body?.email || req.query.email || '').trim().toLowerCase()
+  if (!email) return res.status(400).json({ error: 'email required' })
+  const store = loadStore()
+  const post = store.posts.find((p) => p.id === postId)
+  if (!post) return res.status(404).json({ error: 'Post not found' })
+  if (post.authorEmail !== email) return res.status(403).json({ error: 'You can only delete your own posts' })
+
+  store.posts = store.posts.filter((p) => p.id !== postId)
+  store.likes = store.likes.filter((l) => l.postId !== postId)
+  store.comments = store.comments.filter((c) => c.postId !== postId)
+  saveStore(store)
+  res.json({ ok: true })
+})
+
+app.post('/api/auth/change-password', (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase()
+    const currentPassword = String(req.body.currentPassword || '')
+    const newPassword = String(req.body.newPassword || '')
+    if (!email || !currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'email, currentPassword, and newPassword required' })
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters' })
+    }
+    const store = loadStore()
+    const user = findUser(store, { email })
+    if (!user || !verifyPassword(currentPassword, user.passwordSalt, user.passwordHash)) {
+      return res.status(401).json({ error: 'Current password is incorrect' })
+    }
+    const { salt, hash } = hashPassword(newPassword)
+    user.passwordSalt = salt
+    user.passwordHash = hash
+    saveStore(store)
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Password update failed' })
+  }
+})
+
+
 app.get('/api/posts/:id/comments', (req, res) => {
   const store = loadStore()
   const comments = store.comments

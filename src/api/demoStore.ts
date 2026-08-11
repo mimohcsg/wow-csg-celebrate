@@ -231,3 +231,15 @@ export async function demoFetchActiveStories(): Promise<Story[]> {
     return !Number.isFinite(exp) || exp > now
   })
 }
+
+export async function demoDeletePost(postId: string, email: string): Promise<void> {
+  const db = load()
+  const post = db.posts.find((p) => p.id === postId)
+  if (!post) throw new Error('Post not found')
+  if (post.authorEmail !== email) throw new Error('You can only delete your own posts')
+  db.posts = db.posts.filter((p) => p.id !== postId)
+  db.likes = db.likes.filter((l) => l.postId !== postId)
+  db.comments = db.comments.filter((c) => c.postId !== postId)
+  save(db)
+}
+

@@ -10,7 +10,7 @@ import type { CelebrateUser, Post } from '../types'
 
 export function ProfilePage() {
   const { username: routeUser } = useParams()
-  const { user, logout, updateProfile } = useAuth()
+  const { user, logout, updateProfile, changePassword, sharedMode } = useAuth()
   const username = (routeUser || user?.username || '').toLowerCase()
   const [profile, setProfile] = useState<CelebrateUser | null>(null)
   const [postsCount, setPostsCount] = useState(0)
@@ -18,8 +18,13 @@ export function ProfilePage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [changingPw, setChangingPw] = useState(false)
   const [bio, setBio] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [pwMsg, setPwMsg] = useState('')
   const avatarRef = useRef<HTMLInputElement>(null)
 
   const isMe = Boolean(user?.username && user.username === username)
@@ -86,6 +91,32 @@ export function ProfilePage() {
     }
   }
 
+  async function onChangePassword() {
+    setPwMsg('')
+    setError('')
+    if (newPassword.length < 6) {
+      setError('New password must be at least 6 characters')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match')
+      return
+    }
+    setBusy(true)
+    try {
+      await changePassword(currentPassword, newPassword)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setChangingPw(false)
+      setPwMsg('Password updated')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Password update failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const avatar =
     profile?.avatarUrl ||
     `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(profile?.displayName || 'CSG')}`
@@ -145,9 +176,23 @@ export function ProfilePage() {
                 </div>
               </div>
               {isMe ? (
-                <button type="button" className="btn btn-secondary" onClick={() => setEditing((v) => !v)}>
-                  {editing ? 'Close edit' : 'Edit profile'}
-                </button>
+                <div className="profile-actions">
+                  <button type="button" className="btn btn-secondary" onClick={() => setEditing((v) => !v)}>
+                    {editing ? 'Close edit' : 'Edit profile'}
+                  </button>
+                  {sharedMode && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setChangingPw((v) => !v)
+                        setPwMsg('')
+                      }}
+                    >
+                      {changingPw ? 'Close' : 'Change password'}
+                    </button>
+                  )}
+                </div>
               ) : (
                 <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void onFollow()}>
                   {profile.isFollowing ? 'Following' : 'Follow'}
@@ -161,6 +206,8 @@ export function ProfilePage() {
             {profile.bio && <p>{profile.bio}</p>}
           </div>
 
+          {pwMsg && <div className="success-banner">{pwMsg}</div>}
+
           {editing && isMe && (
             <div className="edit-panel">
               <div className="field">
@@ -173,6 +220,49 @@ export function ProfilePage() {
               </div>
               <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void onSave()}>
                 Save
+              </button>
+            </div>
+          )}
+
+          {changingPw && isMe && sharedMode && (
+            <div className="edit-panel">
+              <div className="field">
+                <label htmlFor="cur-pw">Current password</label>
+                <input
+                  id="cur-pw"
+                  type="password"
+                  autoComplete="current-password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="new-pw">New password</label>
+                <input
+                  id="new-pw"
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="confirm-pw">Confirm new password</label>
+                <input
+                  id="confirm-pw"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy || !currentPassword || !newPassword}
+                onClick={() => void onChangePassword()}
+              >
+                Update password
               </button>
             </div>
           )}

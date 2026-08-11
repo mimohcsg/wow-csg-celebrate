@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Post, Comment } from '../types'
 import { useAuth } from '../auth/AuthContext'
-import { addComment, fetchComments, toggleLike } from '../api/sharepoint'
+import { addComment, deletePost, fetchComments, toggleLike } from '../api/sharepoint'
 
 function HeartIcon({ filled }: { filled?: boolean }) {
   return (
@@ -23,9 +23,11 @@ function CommentIcon() {
 export function PostCard({
   post,
   onChange,
+  onDelete,
 }: {
   post: Post
   onChange: (next: Post) => void
+  onDelete?: (postId: string) => void
 }) {
   const { user } = useAuth()
   const [busy, setBusy] = useState(false)
@@ -33,6 +35,7 @@ export function PostCard({
   const [comments, setComments] = useState<Comment[]>([])
   const [text, setText] = useState('')
   const [error, setError] = useState('')
+  const isOwner = Boolean(user && user.email === post.authorEmail)
 
   async function onLike() {
     if (!user || busy) return
@@ -74,6 +77,21 @@ export function PostCard({
     }
   }
 
+  async function onDeleteClick() {
+    if (!user || !isOwner || busy) return
+    if (!window.confirm('Delete this post?')) return
+    setBusy(true)
+    setError('')
+    try {
+      await deletePost(post.id, user)
+      onDelete?.(post.id)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Delete failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const avatar =
     post.authorAvatar ||
     `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(post.authorName || 'CSG')}`
@@ -96,6 +114,11 @@ export function PostCard({
             <div className="muted">{when} · {post.authorName}</div>
           </div>
         </Link>
+        {isOwner && (
+          <button type="button" className="btn-link danger" onClick={() => void onDeleteClick()} disabled={busy}>
+            Delete
+          </button>
+        )}
       </div>
 
       {post.media[0] ? (

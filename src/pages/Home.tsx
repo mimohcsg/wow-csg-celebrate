@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { createStory, fetchActiveStories, fetchPosts } from '../api/sharepoint'
 import { PostCard } from '../components/PostCard'
+import { StoryViewer } from '../components/StoryViewer'
 import type { Post, Story } from '../types'
 
 export function HomePage() {
@@ -12,6 +13,7 @@ export function HomePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [storyBusy, setStoryBusy] = useState(false)
+  const [storyIndex, setStoryIndex] = useState<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -82,12 +84,12 @@ export function HomePage() {
           </div>
           <span>{storyBusy ? '…' : 'Your story'}</span>
         </button>
-        {stories.map((s) => (
+        {stories.map((s, i) => (
           <button
             type="button"
             className="story-bubble"
             key={s.id}
-            onClick={() => window.open(s.mediaUrl, '_blank')}
+            onClick={() => setStoryIndex(i)}
           >
             <div className="story-ring">
               <div className="story-ring-inner">
@@ -116,9 +118,18 @@ export function HomePage() {
             key={p.id}
             post={p}
             onChange={(next) => setPosts((all) => all.map((x) => (x.id === next.id ? next : x)))}
+            onDelete={(id) => setPosts((all) => all.filter((x) => x.id !== id))}
           />
         ))}
       </div>
+
+      {storyIndex !== null && stories.length > 0 && (
+        <StoryViewer
+          stories={stories}
+          startIndex={storyIndex}
+          onClose={() => setStoryIndex(null)}
+        />
+      )}
     </div>
   )
 }

@@ -10,7 +10,7 @@ import {
 import { ensureMsal, getActiveAccount, isCorporateEmail, isMsalConfigured, signIn, signOut } from './msal'
 import { getMe } from '../api/sharepoint'
 import { getDemoUser, isDemoMode } from '../api/demoStore'
-import { isSharedMode, sharedLogin, sharedSignup, sharedUpdateProfile } from '../api/sharedApi'
+import { isSharedMode, sharedChangePassword, sharedLogin, sharedSignup, sharedUpdateProfile } from '../api/sharedApi'
 import type { CelebrateUser } from '../types'
 
 const PROFILE_KEY = 'wow-celebrate-profile-v2'
@@ -31,6 +31,7 @@ type AuthState = {
     bio?: string
   }) => Promise<void>
   updateProfile: (params: { displayName?: string; bio?: string; avatar?: File | null }) => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   joinShared: (name: string, email: string) => Promise<void>
   logout: () => Promise<void>
   error: string
@@ -175,6 +176,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         writeProfile(next)
         setUser(next)
+      },
+      changePassword: async (currentPassword, newPassword) => {
+        if (!user) throw new Error('Not signed in')
+        await sharedChangePassword(user.email, currentPassword, newPassword)
       },
       joinShared: async (name: string, email: string) => {
         // Legacy quick-join kept for compatibility

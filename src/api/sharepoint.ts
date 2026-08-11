@@ -5,6 +5,7 @@ import {
   demoAddComment,
   demoCreatePost,
   demoCreateStory,
+  demoDeletePost,
   demoFetchActiveStories,
   demoFetchComments,
   demoFetchPosts,
@@ -17,6 +18,7 @@ import {
   sharedAddComment,
   sharedCreatePost,
   sharedCreateStory,
+  sharedDeletePost,
   sharedFetchActiveStories,
   sharedFetchComments,
   sharedFetchPosts,
@@ -253,6 +255,12 @@ export async function toggleLike(post: Post, user: CelebrateUser): Promise<Post>
     LikeCount: next,
   })
   return { ...post, likedByMe: true, likeCount: next }
+}
+
+export async function deletePost(postId: string, user: CelebrateUser): Promise<void> {
+  if (isSharedMode()) return sharedDeletePost(postId, user.email)
+  if (isDemoMode()) return demoDeletePost(postId, user.email)
+  throw new Error('Delete is available in shared Celebrate mode')
 }
 
 export async function addComment(postId: string, user: CelebrateUser, text: string): Promise<void> {

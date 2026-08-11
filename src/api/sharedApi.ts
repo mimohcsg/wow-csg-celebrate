@@ -170,3 +170,26 @@ export async function sharedUpdateProfile(params: {
   return data.user
 }
 
+export async function sharedDeletePost(postId: string, email: string): Promise<void> {
+  const res = await fetch(apiUrl(`/api/posts/${encodeURIComponent(postId)}`), {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  if (!res.ok) throw new Error(await readError(res))
+}
+
+export async function sharedChangePassword(
+  email: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  const res = await fetch(apiUrl('/api/auth/change-password'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, currentPassword, newPassword }),
+  })
+  if (!res.ok) throw new Error(await readError(res))
+}
+
+
