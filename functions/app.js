@@ -319,6 +319,7 @@ function createApp() {
       })
       res.status(201).json({ post })
     } catch (e) {
+      console.error('post create failed', e)
       res.status(500).json({ error: e instanceof Error ? e.message : 'Create failed' })
     }
   })
@@ -492,6 +493,7 @@ function createApp() {
       })
       res.status(201).json({ story })
     } catch (e) {
+      console.error('story upload failed', e)
       res.status(500).json({ error: e instanceof Error ? e.message : 'Story failed' })
     }
   })
