@@ -82,15 +82,30 @@ function findUser(store, { email, username, id } = {}) {
 }
 
 async function fileToUrl(file) {
-  if (!file) return ''
-  return uploadBuffer(file.buffer, file.originalname, file.mimetype)
+  if (!file?.buffer) return ''
+  return uploadBuffer(
+    file.buffer,
+    file.originalname || file.name || 'upload.bin',
+    file.mimetype || file.type,
+  )
+}
+
+function base64PayloadToFile(payload, fallbackName = 'upload.bin') {
+  if (!payload || typeof payload !== 'object' || !payload.data) return null
+  const buffer = Buffer.from(String(payload.data), 'base64')
+  if (!buffer.length) return null
+  return {
+    buffer,
+    originalname: String(payload.name || fallbackName),
+    mimetype: String(payload.type || 'application/octet-stream'),
+  }
 }
 
 function createApp() {
   const app = express()
   app.set('trust proxy', 1)
   app.use(cors({ origin: true }))
-  app.use(express.json({ limit: '2mb' }))
+  app.use(express.json({ limit: '12mb' }))
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, mode: 'firebase', brand: 'WoW-CSG Celebrate' })
@@ -183,7 +198,8 @@ function createApp() {
     try {
       const email = String(req.body.email || '').trim().toLowerCase()
       if (!email) return res.status(400).json({ error: 'email required' })
-      const avatarUrl = req.file ? await fileToUrl(req.file) : null
+      const avatarFile = req.file || base64PayloadToFile(req.body.avatar, 'avatar.jpg')
+      const avatarUrl = avatarFile ? await fileToUrl(avatarFile) : null
 
       const user = await updateStore((store) => {
         const u = findUser(store, { email })
@@ -287,7 +303,11 @@ function createApp() {
       if (!authorEmail || !authorName) {
         return res.status(400).json({ error: 'authorEmail and authorName required' })
       }
-      const files = req.files || []
+      const uploaded = Array.isArray(req.files) ? req.files : []
+      const jsonFiles = Array.isArray(req.body.files)
+        ? req.body.files.map((f, i) => base64PayloadToFile(f, `file-${i}.bin`)).filter(Boolean)
+        : []
+      const files = uploaded.length ? uploaded : jsonFiles
       if (!files.length && !caption) {
         return res.status(400).json({ error: 'Add a caption or at least one media file' })
       }
@@ -471,10 +491,11 @@ function createApp() {
     try {
       const authorEmail = String(req.body.authorEmail || '').trim().toLowerCase()
       const authorName = String(req.body.authorName || '').trim()
-      if (!authorEmail || !authorName || !req.file) {
+      const storyFile = req.file || base64PayloadToFile(req.body.file, 'story.jpg')
+      if (!authorEmail || !authorName || !storyFile) {
         return res.status(400).json({ error: 'authorEmail, authorName, and file required' })
       }
-      const mediaUrl = await fileToUrl(req.file)
+      const mediaUrl = await fileToUrl(storyFile)
       const story = await updateStore((store) => {
         const account = findUser(store, { email: authorEmail })
         const next = {

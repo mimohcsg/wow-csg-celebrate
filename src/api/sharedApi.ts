@@ -16,6 +16,22 @@ async function readError(res: Response): Promise<string> {
   return `Request failed (${res.status})`
 }
 
+async function fileToBase64Payload(file: File): Promise<{
+  name: string
+  type: string
+  data: string
+}> {
+  const buf = await file.arrayBuffer()
+  const bytes = new Uint8Array(buf)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]!)
+  return {
+    name: file.name || 'upload.bin',
+    type: file.type || 'application/octet-stream',
+    data: btoa(binary),
+  }
+}
+
 export function isSharedMode() {
   return import.meta.env.VITE_SHARED_MODE === 'true' || import.meta.env.VITE_SHARED_MODE === '1'
 }
@@ -32,12 +48,20 @@ export async function sharedCreatePost(params: {
   caption: string
   files: File[]
 }): Promise<string> {
-  const body = new FormData()
-  body.set('authorEmail', params.user.email)
-  body.set('authorName', params.user.displayName)
-  body.set('caption', params.caption)
-  for (const file of params.files.slice(0, 10)) body.append('files', file)
-  const res = await fetch(apiUrl('/api/posts'), { method: 'POST', body })
+  const files = []
+  for (const file of params.files.slice(0, 10)) {
+    files.push(await fileToBase64Payload(file))
+  }
+  const res = await fetch(apiUrl('/api/posts'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      authorEmail: params.user.email,
+      authorName: params.user.displayName,
+      caption: params.caption,
+      files,
+    }),
+  })
   if (!res.ok) throw new Error(await readError(res))
   const data = (await res.json()) as { post: Post }
   return data.post.id
@@ -75,11 +99,16 @@ export async function sharedFetchComments(postId: string): Promise<Comment[]> {
 }
 
 export async function sharedCreateStory(user: CelebrateUser, file: File): Promise<string> {
-  const body = new FormData()
-  body.set('authorEmail', user.email)
-  body.set('authorName', user.displayName)
-  body.append('file', file)
-  const res = await fetch(apiUrl('/api/stories'), { method: 'POST', body })
+  const payload = await fileToBase64Payload(file)
+  const res = await fetch(apiUrl('/api/stories'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      authorEmail: user.email,
+      authorName: user.displayName,
+      file: payload,
+    }),
+  })
   if (!res.ok) throw new Error(await readError(res))
   const data = (await res.json()) as { story: Story }
   return data.story.id
@@ -188,12 +217,15 @@ export async function sharedUpdateProfile(params: {
   bio?: string
   avatar?: File | null
 }): Promise<CelebrateUser> {
-  const body = new FormData()
-  body.set('email', params.email)
-  if (params.displayName) body.set('displayName', params.displayName)
-  if (typeof params.bio === 'string') body.set('bio', params.bio)
-  if (params.avatar) body.append('avatar', params.avatar)
-  const res = await fetch(apiUrl('/api/users/me'), { method: 'PATCH', body })
+  const body: Record<string, unknown> = { email: params.email }
+  if (params.displayName) body.displayName = params.displayName
+  if (typeof params.bio === 'string') body.bio = params.bio
+  if (params.avatar) body.avatar = await fileToBase64Payload(params.avatar)
+  const res = await fetch(apiUrl('/api/users/me'), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
   if (!res.ok) throw new Error(await readError(res))
   const data = (await res.json()) as { user: CelebrateUser }
   return data.user
