@@ -41,7 +41,7 @@ export function HomePage() {
     setError('')
     try {
       await createStory(user, file)
-      setStories(await fetchActiveStories())
+      setStories(await fetchActiveStories(user.email))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Story upload failed')
     } finally {
@@ -72,7 +72,12 @@ export function HomePage() {
         onChange={(e) => void onStoryFile(e.target.files?.[0])}
       />
 
-      <div className="story-tray" aria-label="Stories">
+      <div className="moments-rail">
+        <div className="section-kicker">
+          <span>Live moments</span>
+          <em>24h</em>
+        </div>
+        <div className="story-tray" aria-label="Moments">
         <button
           type="button"
           className="story-bubble add"
@@ -82,7 +87,7 @@ export function HomePage() {
           <div className="story-ring">
             <div className="story-ring-inner">+</div>
           </div>
-          <span>{storyBusy ? '…' : 'Your story'}</span>
+          <span>{storyBusy ? '…' : 'Add yours'}</span>
         </button>
         {stories.map((s, i) => (
           <button
@@ -96,23 +101,27 @@ export function HomePage() {
                 <img src={s.mediaUrl} alt="" />
               </div>
             </div>
-            <span>{s.authorName.split(' ')[0] || 'Story'}</span>
+            <span>{s.authorName.split(' ')[0] || 'Moment'}</span>
           </button>
         ))}
+        </div>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
-      {loading && <p className="loading-row">Loading feed…</p>}
+      {loading && <p className="loading-row">Loading celebrate feed…</p>}
       {!loading && posts.length === 0 && (
         <div className="empty-state">
-          <h2>No posts yet</h2>
-          <p>Share the first celebration with your team.</p>
+          <h2>Start the cheer</h2>
+          <p>Be the first to share a win with the team.</p>
           <Link to="/app/create" className="btn btn-primary">
-            Create post
+            Create celebration
           </Link>
         </div>
       )}
       <div className="feed">
+        <div className="section-kicker feed-kicker">
+          <span>Team feed</span>
+        </div>
         {posts.map((p) => (
           <PostCard
             key={p.id}
